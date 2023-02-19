@@ -34,12 +34,12 @@ def draw_snowman(num_lines_to_draw):
 
 def get_one_character():
     ch = ''
-    while len(ch) != 1:
+    while len(ch) != 1 or not ch.isalpha():
         ch = input("Enter one letter > ").lower()
     return ch
 
 
-def print_current_game_state(correct_guesses, incorrect_guesses, msg=''):
+def print_current_game_state(word_to_guess, correct_guesses, incorrect_guesses, msg=''):
     print("SNOWMAN SO FAR:")
     print(len(SNOWMAN_GRAPHIC[0])*"=")
     for i in range(len(SNOWMAN_GRAPHIC) - len(incorrect_guesses)):
@@ -51,17 +51,16 @@ def print_current_game_state(correct_guesses, incorrect_guesses, msg=''):
     print(msg)
     print()
 
-    if correct_guesses:
-        correct = ', '.join(f"'{x}'" for x in correct_guesses)
-        print(f"Guessed correct: {correct}")
-    else:
-        print("No correct guesses yet.")
-
     if incorrect_guesses:
         incorrect = ', '.join(f"'{x}'" for x in incorrect_guesses)
         print(f"Guessed incorrectly: {incorrect}")
     else:
         print("No incorrect guesses yet.")
+    print()
+
+    print('The word is: ', ' '.join(w if w in correct_guesses else '_' for w in word_to_guess))
+    print()
+
 
 
 def collect_user_input(correct_guesses, incorrect_guesses):
@@ -102,7 +101,7 @@ def snowman_game(word_min_length=5, word_max_length=8, show_secret_word=False):
     msg = ''
     while len(incorrect_guesses) < len(SNOWMAN_GRAPHIC) and letters_left_to_guess:
         clear_screen()
-        print_current_game_state(correct_guesses, incorrect_guesses, msg)
+        print_current_game_state(word_to_guess, correct_guesses, incorrect_guesses, msg)
 
         user_input = collect_user_input(correct_guesses, incorrect_guesses)
         if user_input not in letters_left_to_guess:
@@ -115,10 +114,10 @@ def snowman_game(word_min_length=5, word_max_length=8, show_secret_word=False):
         letters_left_to_guess.remove(user_input)
 
     clear_screen()
-    print_current_game_state(correct_guesses, incorrect_guesses)
+    print_current_game_state(word_to_guess, correct_guesses, incorrect_guesses)
     print()
     print_end_game(not letters_left_to_guess, word_to_guess)
 
 
 if __name__ == '__main__':
-    snowman_game(show_secret_word=True)
+    snowman_game(show_secret_word=False)
