@@ -19,6 +19,12 @@ Few more exmaples:
     >>> multiply_string('0[ab2[xy]]3[gz]')
     'gzgzgz'
 
+    >>> multiply_string('2[abc3[de]fg]')
+    'abcdededefgabcdededefg'
+
+    >>> multiply_string('xyz2[abc3[de]fg]qrs')
+    'xyzabcdededefgabcdededefgqrs'
+
     >>> multiply_string('13[u]')
     'uuuuuuuuuuuuu'
 """
