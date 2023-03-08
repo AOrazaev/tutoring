@@ -27,5 +27,6 @@ def main():
             draw_confetti(term, 150, styles)
             time.sleep(0.5)
 
+
 if __name__ == '__main__':
     main()
