@@ -1,6 +1,6 @@
 """
 Usage:
-    show_image_blessed.py <image_path> [--max-size=<max-size>]
+    show_image_blessed.py <image_path> [--max-size=<max-size>] [--crop=<crop-factor>]
 """
 import blessed
 from PIL import Image, ImageSequence
@@ -31,29 +31,46 @@ def generate_text_image(term, im):
     return '\n'.join(timg)
 
 
-def show_gif(im, max_size=(70, 70)):
+def show_gif(im, max_size=(70, 70), crop=None):
     term = blessed.Terminal()
     with term.fullscreen(), term.cbreak(), term.hidden_cursor():
-        frames = collect_frames(term, im, max_size)
+        frames = collect_frames(term, im, max_size, crop)
         i = 0
         while True:
             print(term.home + frames[i % len(frames)])
-            time.sleep(0.15)
+            time.sleep(0.1)
             i += 1
 
-def collect_frames(term, im, max_size):
+
+def collect_frames(term, im, max_size, crop):
     frames = []
     for fr in ImageSequence.Iterator(im):
         rgb_im = fr.convert(mode='RGB')
-        rgb_im.thumbnail(max_size, Image.Resampling.NEAREST) #Image.Resampling.LANCZOS)
+        if crop:
+            width, height = rgb_im.size
+            left = width * (1 - crop) / 2
+            top = height * (1 - crop) / 2
+            right = width * (1 + crop) / 2
+            bottom = height * (1 + crop) / 2
+            rgb_im = rgb_im.crop((left, top, right, bottom))
+
+        rgb_im.thumbnail(
+            max_size,
+            Image.Resampling.NEAREST  # Image.Resampling.LANCZOS)
+        )
         frames.append(generate_text_image(term, rgb_im))
     return frames
+
 
 if __name__ == '__main__':
     opts = docopt(__doc__)
     sz = 40
+    crop = None
     if opts['--max-size']:
         sz = int(opts['--max-size'])
 
+    if opts['--crop']:
+        crop = float(opts['--crop'])
+
     with Image.open(opts['<image_path>']) as im:
-        show_gif(im, max_size=(sz, sz))
+        show_gif(im, max_size=(sz, sz), crop=crop)
