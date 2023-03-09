@@ -13,6 +13,7 @@ from tetris_pieces import (
 )
 import random
 from datetime import datetime, timedelta
+import time
 
 
 @dataclass
@@ -72,13 +73,23 @@ class GameRenderer:
         self._move(window.x-1, window.y+window.height)
         print('└' + '─' * window.width * self.scale_x + '┘', end='')
 
+    def draw_game_over(self):
+        window = self.game_window
+        text = 'GAME OVER'
+        self._move(
+            window.x + window.width * self.scale_x // 2 - len(text) // 2,
+            window.y + window.height // 2
+        )
+        print(text, end='', flush=True)
+
+    # Tetris related
     def render_field(
         self, piece: TetrisPiece, field: GameField
     ) -> List[List[str]]:
         copy = list(list(x) for x in field.rendered_filled_part)
         for y, (shift_x, row) in enumerate(self._piece_rows(piece)):
             for x, ch in enumerate(row):
-                if piece.y + y <= 0:
+                if piece.y + y < 0:
                     continue
                 copy[piece.y + y][piece.x + x + shift_x // self.scale_x] = ch
         return copy
@@ -86,7 +97,6 @@ class GameRenderer:
     def draw(self, window: MainWindow):
         self.draw_border()
 
-    # Tetris related
     def draw_field(self, field: GameField):
         window = self.game_window
         for y, row in enumerate(field.rendered_filled_part):
@@ -187,12 +197,16 @@ def init(term, width, height) -> Tuple[GameField, GameRenderer]:
 def handle_key(
     key,
     piece: TetrisPiece,
-    field: GameField
-) -> Tuple[TetrisPiece, bool]:
+    field: GameField,
+    next_cycle: datetime
+) -> Tuple[TetrisPiece, bool, datetime]:
     need_redraw = False
 
     if key.code == term.KEY_ESCAPE:
         exit(0)
+
+    if key == ' ':
+        return piece, False, datetime.now()
 
     if key.code == term.KEY_LEFT:
         piece.x -= 1
@@ -201,7 +215,7 @@ def handle_key(
         if not can_move(piece, field):
             piece.x += 1
             need_redraw = False
-        return piece, need_redraw
+        return piece, need_redraw, next_cycle
 
     if key.code == term.KEY_RIGHT:
         piece.x += 1
@@ -210,21 +224,23 @@ def handle_key(
         if not can_move(piece, field):
             piece.x -= 1
             need_redraw = False
-        return piece, need_redraw
+        return piece, need_redraw, next_cycle
 
     if key.code == term.KEY_UP:
         rotated = rotate_counterclockwise(piece)
         if can_move(rotated, field):
             piece = rotated
             need_redraw = True
-        return piece, need_redraw
+        return piece, need_redraw, next_cycle
 
     if key.code == term.KEY_DOWN:
         rotated = rotate_clockwise(piece)
         if can_move(rotated, field):
             piece = rotated
             need_redraw = True
-        return piece, need_redraw
+        return piece, need_redraw, next_cycle
+
+    return piece, False, next_cycle
 
 
 def main(term):
@@ -235,6 +251,12 @@ def main(term):
     piece = TetrisPiece(4, 0, random.choice(PATTERNS))
     piece.y = -piece_height(piece)
 
+    next_piece = TetrisPiece(
+        renderer.game_window.width + 1,
+        1,
+        random.choice(PATTERNS)
+    )
+
     next_cycle = datetime.now() + timedelta(seconds=CYCLE_TIME_SECONDS)
 
     while True:
@@ -243,12 +265,14 @@ def main(term):
             renderer.draw_border()
             renderer.draw_field(field)
             renderer.draw_piece(piece)
+            renderer.draw_piece(next_piece)
             renderer.flush()
 
         time_left = (next_cycle - datetime.now()).total_seconds()
         if time_left > 0 and term.kbhit(timeout=time_left):
             key = term.inkey(esc_delay=0)
-            piece, need_redraw = handle_key(key, piece, field)
+            piece, need_redraw, next_cycle = handle_key(
+                key, piece, field, next_cycle)
             continue
 
         next_cycle = datetime.now() + timedelta(seconds=CYCLE_TIME_SECONDS)
@@ -261,10 +285,18 @@ def main(term):
             # Update
             field.rendered_filled_part = renderer.render_field(piece, field)
             if not try_fix_piece(piece, field):
+                renderer.draw_game_over()
+                term.inkey()
                 return
             field_clenaup(field, renderer)
 
-            piece = TetrisPiece(4, 0, random.choice(PATTERNS))
+            piece = next_piece
+            next_piece = TetrisPiece(
+                renderer.game_window.width + 1,
+                1,
+                random.choice(PATTERNS)
+            )
+            piece.x = 4
             piece.y = -piece_height(piece)
 
 
