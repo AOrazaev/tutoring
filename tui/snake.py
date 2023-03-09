@@ -34,6 +34,10 @@ def draw_berry(game_field, x, y):
     print(term.move_xy(game_field['x'] + x*2, game_field['y'] + y) + text)
 
 
+def draw_score(game_field, score):
+    print(term.move_xy(game_field['x'], game_field['y']-2) + f'Score: {score}')
+
+
 def new_berry(game_field, snake):
     x, y = snake[0]
     while (x, y) in snake:
@@ -61,6 +65,7 @@ def main(term):
 
     snake = [(x, y)]
     berry_xy = new_berry(game_field, snake)
+    score = 0
 
     while True:
         x = min(max(-1, snake[-1][0]+direction[0]), game_field['width'])
@@ -79,6 +84,7 @@ def main(term):
         # check if we ate a berry
         if (x, y) == berry_xy:
             audio.play('audio/bite_an_apple.mp3')
+            score += 100
             berry_xy = new_berry(game_field, snake)
         else:
             del snake[0]
@@ -94,6 +100,7 @@ def main(term):
         )
         draw_snake(game_field, snake)
         draw_berry(game_field, *berry_xy)
+        draw_score(game_field, score)
 
         # keyboard handling
         if term.kbhit(timeout=DELAY):
