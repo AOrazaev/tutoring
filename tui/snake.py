@@ -1,5 +1,6 @@
 import blessed
 import random
+import audio
 
 
 def colored(text, rgb_fg=None, rgb_bg=None):
@@ -75,7 +76,9 @@ def main(term):
 
         snake.append((x, y))
 
+        # check if we ate a berry
         if (x, y) == berry_xy:
+            audio.play('audio/bite_an_apple.mp3')
             berry_xy = new_berry(game_field, snake)
         else:
             del snake[0]
