@@ -14,6 +14,7 @@ from tetris_pieces import (
 import random
 from datetime import datetime, timedelta
 import time
+import audio
 
 
 @dataclass
@@ -82,6 +83,13 @@ class GameRenderer:
         )
         print(text, end='', flush=True)
 
+    def draw_score(self, score):
+        window = self.game_window
+        text = f'Score: {score}'
+
+        self._move(window.x, window.y - 2)
+        print(text)
+
     # Tetris related
     def render_field(
         self, piece: TetrisPiece, field: GameField
@@ -94,18 +102,23 @@ class GameRenderer:
                 copy[piece.y + y][piece.x + x + shift_x // self.scale_x] = ch
         return copy
 
-    def draw(self, window: MainWindow):
-        self.draw_border()
-
     def draw_field(self, field: GameField):
         window = self.game_window
         for y, row in enumerate(field.rendered_filled_part):
             self._move(window.x, window.y + y)
             print(''.join(row), end='')
 
-    def draw_piece(self, piece: TetrisPiece):
+    def draw_piece(self, piece: TetrisPiece, next: bool = False):
         window = self.game_window
+        if next:
+            self._move(
+                window.x + piece.x * self.scale_x,
+                window.y + piece.y-2)
+            print('Next:', end='')
+
         for i, (shift_x, row) in enumerate(self._piece_rows(piece)):
+            if piece.y + i < 0:
+                continue
             self._move(
                 window.x + shift_x + piece.x * self.scale_x,
                 window.y + piece.y + i)
@@ -245,7 +258,7 @@ def handle_key(
 
 def main(term):
     field, renderer = init(term, 10, 20)
-    CYCLE_TIME_SECONDS = 0.3
+    CYCLE_TIME_SECONDS = 0.2
     need_redraw = True
 
     piece = TetrisPiece(4, 0, random.choice(PATTERNS))
@@ -258,6 +271,7 @@ def main(term):
     )
 
     next_cycle = datetime.now() + timedelta(seconds=CYCLE_TIME_SECONDS)
+    score = 0
 
     while True:
         if need_redraw:
@@ -265,7 +279,8 @@ def main(term):
             renderer.draw_border()
             renderer.draw_field(field)
             renderer.draw_piece(piece)
-            renderer.draw_piece(next_piece)
+            renderer.draw_piece(next_piece, True)
+            renderer.draw_score(score)
             renderer.flush()
 
         time_left = (next_cycle - datetime.now()).total_seconds()
@@ -286,9 +301,13 @@ def main(term):
             field.rendered_filled_part = renderer.render_field(piece, field)
             if not try_fix_piece(piece, field):
                 renderer.draw_game_over()
+                time.sleep(2)
                 term.inkey()
                 return
-            field_clenaup(field, renderer)
+            cleaned = field_clenaup(field, renderer)
+            if cleaned > 0:
+                audio.play("audio/bonus_collected.mp3")
+                score += 2**(cleaned-1) * 1000
 
             piece = next_piece
             next_piece = TetrisPiece(
