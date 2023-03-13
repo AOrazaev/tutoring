@@ -1,5 +1,6 @@
 import blessed
 import random
+import audio
 
 from dataclasses import dataclass
 from renderer import GameRenderer, colored, strip_color
@@ -192,9 +193,11 @@ def handle_key(key, state: MinsweeperState):
 
         if state.field[state.cursor.y][state.cursor.x] == BOMB:
             state.game_over = True
+            audio.play("audio/arcade_explosion.wav")
 
         if check_win(state):
             state.victory = True
+            audio.play("audio/bonus_collected.mp3")
 
         if state.field[state.cursor.y][state.cursor.x] == EMPTY:
             open_around(state)
